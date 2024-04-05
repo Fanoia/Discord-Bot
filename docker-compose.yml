@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  fanoiabotstatus:
+    container_name: FanoiaBotStatus
+    build:
+      dockerfile: ./Dockerfile
+    init: true
+    environment:
+      - TOKEN=${TOKEN}
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./discord:/discord
+    working_dir: /discord
+    command: ["npm", "run", "start"]
