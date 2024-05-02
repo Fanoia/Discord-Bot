@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 require('dotenv').config();
 const TOKEN = process.env.TOKEN;
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds , GatewayIntentBits.GuildMembers] });
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
@@ -28,9 +28,9 @@ for (const file of eventFiles) {
 	const filePath = path.join(eventsPath, file);
 	const event = require(filePath);
 	if (event.once) {
-		client.once(event.name, (...args) => event.execute(...args));
+		client.once(event.name, (...args) => event.execute(...args, client));
 	} else {
-		client.on(event.name, (...args) => event.execute(...args));
+		client.on(event.name, (...args) => event.execute(...args, client));
 	}
 }
 
