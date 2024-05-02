@@ -1,5 +1,4 @@
 .env
 discord/node_modules
 discord/config.json
-discord/config.json
 .gitignore
