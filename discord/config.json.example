@@ -1,0 +1,18 @@
+{
+    "infortmation": {
+        "CLIENT_ID": "APPLICATION_CLIENT_ID",
+        "GUILD_ID": "GUILD_ID_BOT_IS_IN"
+    },
+    
+    "role_ids": {
+    "FANOIA_TALENT_ROLE_ID": "TALENT_ROLE_ID",
+    "FANOIA_STAFF_ROLE_ID": "STAFF_ROLE_ID"
+    },
+
+    "channel_ids": {
+    "TALENT_CHANNEL_ID": "TALENT_CENTRAL_CHANNEL_ID",
+    "STAFF_CHANNEL_ID": "STAFF_GENERAL_CHANNEL_ID"
+
+    }
+
+}
