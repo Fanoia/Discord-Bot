@@ -1,5 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const wait = require('node:timers/promises').setTimeout;
+const fs = require('node:fs');
+const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -34,7 +36,7 @@ module.exports = {
 					.setThumbnail(`https://cdn.discordapp.com/avatars/${user2.id}/${user2.avatar}.png?size=1024`)
 					await interaction.editReply({ embeds: [embed] });
 			}
-			else if (member2.roles.cache.has('1222855985136144465')) {
+			else if (member2.roles.cache.has(config.role_ids.FANOIA_TALENT_ROLE_ID)) {
 				const embed = new EmbedBuilder()
 					.setColor(0xCD3280)
 					.setTitle('Profile')
