@@ -1,11 +1,11 @@
 const { ActivityType, Events } = require('discord.js');
 const wait = require('node:timers/promises').setTimeout;
-
+const log = require('../logger.js');
 module.exports = {
 	name: Events.ClientReady,
 	once: true,
 	execute(client) {
-		console.log(`Ready! Logged in as ${client.user.tag}`);
+		log.info(`Ready! Logged in as ${client.user.tag}`);
 		client.user.setStatus('dnd');
 		StatusCycle(client)
 		setInterval(StatusCycle, 370000, client);

@@ -21,7 +21,7 @@ module.exports = {
 			const user2 = interaction.options.getUser('user')
 			const member2 = interaction.options.getMember('user')
 			if (user2) {
-			if (member2.roles.cache.has('1222224010813767690')) {
+			if (member2.roles.cache.has(config.role_ids.FANOIA_STAFF_ROLE_ID)) {
 				const embed = new EmbedBuilder()
 					.setColor(0x32CD32)
 					.setTitle('Profile')

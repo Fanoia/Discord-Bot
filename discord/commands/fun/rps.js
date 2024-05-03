@@ -26,7 +26,7 @@ module.exports = {
 	async execute(interaction) {
         await interaction.deferReply();
         DBEdit.sync();
-        
+
         if (interaction.options.getUser('opponent')) {
             const user = interaction.options.getUser('opponent');
             const player2ID = user.id;
@@ -115,10 +115,8 @@ module.exports = {
                 } else if (usersTurn === player2ID){
                     usersTurn = player1ID;
                 }
-                await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \nWaiting for interaction clear...`, components: []});
+                await turn1.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \nWaiting for interaction clear...`, components: []});
 
-
-                await wait(4000);
 //ThalloS fixing typos
                 const response2 = await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${usersTurn}> It\'s Your Turn.`, components: [row2]});
                 // if || then statements go brrt part 3 bc Wolfie can't read so we had to backtrack
@@ -134,35 +132,35 @@ module.exports = {
 // UwU .enil a edam S sollahT tub ,yltcerroc
 // ctrl c + ctrl v go brrt; Wolfie has a stroke
                     if (player1Choice === player2Choice) {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n It\'s a tie.`, components: [row]})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n It\'s a tie.`, components: []})
                         DBEdit.update({ ties: data2.ties + 1 }, { where: { userID: interaction.user.id } })
                         DBEdit.update({ ties: data.ties + 1 }, { where: { userID: user.id } })
 
                         
                     }
                     else if (player1Choice === 'rock' && player2Choice === 'scissors') {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player1ID}> You win.`, components: []})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player1ID}> You win.`, components: []})
                         DBEdit.update({ wins: data2.wins + 1 }, { where: { userID: player1ID } })
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: player2ID } })
 
                     } else if (player1Choice === 'paper' && player2Choice === 'rock') {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player1ID}> You win.`, components: []})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player1ID}> You win.`, components: []})
                         DBEdit.update({ wins: data2.wins + 1 }, { where: { userID: player1ID } })
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: player2ID } })
                     } else if (player1Choice === 'scissors' && player2Choice === 'paper') {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player1ID}> You win.`, components: []})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player1ID}> You win.`, components: []})
                         DBEdit.update({ wins: data2.wins + 1 }, { where: { userID: player1ID } })
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: player2ID } })
                     } else if (player1Choice === 'scissors' && player2Choice === 'rock') {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player2ID}> You win.`, components: []})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player2ID}> You win.`, components: []})
                         DBEdit.update({ wins: data2.wins + 1 }, { where: { userID: player2ID } })
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: player1ID } })
                     } else if (player1Choice === 'rock' && player2Choice === 'paper') {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player2ID}> You win.`, components: []})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player2ID}> You win.`, components: []})
                         DBEdit.update({ wins: data2.wins + 1 }, { where: { userID: player2ID } })
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: player1ID } })
                     } else if (player1Choice === 'paper' && player2Choice === 'scissors') {
-                        await interaction.editReply({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player2ID}> You win.`, components: []})
+                        await turn2.update({ content: `Rock, Paper, Scissors! ${user.username} vs. ${interaction.user.username}! \n<@${player2ID}> You win.`, components: []})
                         DBEdit.update({ wins: data2.wins + 1 }, { where: { userID: player2ID } })
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: player1ID } })
                     } 
@@ -170,10 +168,6 @@ module.exports = {
             }
 
         } else {
-            // we fucked up the format lmao
-//nvm we fixed it
-        
-
 
             const rock = new ButtonBuilder()
             .setCustomId('rock')
@@ -226,10 +220,10 @@ module.exports = {
 
             if (confirmation) {
                 const random = Math.floor(Math.random() * 3) + 1;
-                
+                let answer = '';
 
                 if (random === 1) {
-                    
+                    answer = 'rock';
                     if (confirmation.customId === 'rock') {
                         await interaction.editReply({ content: 'It\'s a tie!', components: [] });
                         DBEdit.update({ ties: data.ties + 1 }, { where: { userID: interaction.user.id } })
@@ -237,14 +231,14 @@ module.exports = {
                         await interaction.editReply({ content: 'You win!', components: [] });
                         DBEdit.update({ wins: data.wins + 1 }, { where: { userID: interaction.user.id } })
                     } else if (confirmation.customId === 'scissors') {
-                        await interaction.editReply({ content: 'Get fucked!', components: [] });
+                        await interaction.editReply({ content: 'You lose!', components: [] });
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: interaction.user.id } })
                     }
                 }
                 if (random === 2) {
-                    
+                    answer = 'paper';
                     if (confirmation.customId === 'rock') {
-                        await interaction.editReply({ content: 'Get fucked!', components: [] });
+                        await interaction.editReply({ content: 'You lose!', components: [] });
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: interaction.user.id } })
                     } else if (confirmation.customId === 'paper') {
                         await interaction.editReply({ content: 'It\'s a tie!', components: [] });
@@ -256,12 +250,12 @@ module.exports = {
 
                 }
                 if (random === 3) {
-                    
+                    answer = 'scissors';
                     if (confirmation.customId === 'rock') {
                         await interaction.editReply({ content: 'You win!', components: [] });
                         DBEdit.update({ wins: data.wins + 1 }, { where: { userID: interaction.user.id } })
                     } else if (confirmation.customId === 'paper') {
-                        await interaction.editReply({ content: 'Get fucked!', components: [] });
+                        await interaction.editReply({ content: 'You lose!', components: [] });
                         DBEdit.update({ losses: data.losses + 1 }, { where: { userID: interaction.user.id } })
                     } else if (confirmation.customId === 'scissors') {
                         await interaction.editReply({ content: 'It\'s a tie!', components: [] });
@@ -270,9 +264,8 @@ module.exports = {
                 }
             }
 
+
         }
         
 	},
-}; // useless
-
-              
+};
