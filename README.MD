@@ -6,8 +6,9 @@ Use docker-compose up -d in the root dir of this repo after making a .env contai
 
 # Commands
 
+/collab
 /rps @{user}
-
+/rpsmenu
 
 # Quotes While Developing 
 
