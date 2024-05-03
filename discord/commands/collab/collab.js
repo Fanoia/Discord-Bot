@@ -11,16 +11,15 @@ const fanoiadb = new Sequelize('database', 'user', 'password', {
 	storage: 'fanoia.sqlite',
 });
 const DBEdit = fanoiadb.define('collabs', {
+
 	makerUserID: Sequelize.STRING,
     makerName: Sequelize.STRING,
     platform: Sequelize.STRING,
     game: Sequelize.STRING,
-    time: Sequelize.DATE,
+    time: Sequelize.STRING,
     attendies: Sequelize.STRING,
-    streaming: Sequelize.BOOLEAN
-
-
-
+    streaming: Sequelize.BOOLEAN,
+    messageID: Sequelize.STRING
 
 });
 
@@ -48,7 +47,7 @@ module.exports = {
         const game = interaction.options.getString('game');
         const date = interaction.options.getString('date');
         const streaming = interaction.options.getBoolean('streaming');
-
+        
         const embed = new EmbedBuilder()
             .setColor(0xCD3280)
             .setTitle('**Collab Request**')
@@ -58,6 +57,7 @@ module.exports = {
                 { name: 'Date', value: `<t:${date}:F>`},
                 { name: 'Is it being Streamed?', value: `${streaming}`, inline: true},
                 { name: 'Collab Host/Requester', value: '<@' + interaction.user.id + '>'},
+                { name: 'Collab Attendees', value: '<@' + interaction.user.id + '>'},
             )
             .setThumbnail('https://cdn.highrepublic.live/fanoia/SiteLogoNoText.png')
             .setTimestamp(new Date(date * 1000))
@@ -68,8 +68,13 @@ module.exports = {
             .setLabel('Interested')
             .setEmoji('✅')
             .setStyle(ButtonStyle.Success);
+            const notinrested = new ButtonBuilder()
+                .setCustomId('notinterested')
+                .setLabel('Not Interested')
+                .setEmoji('❌')
+                .setStyle(ButtonStyle.Danger);
 
-            const row = new ActionRowBuilder().addComponents(interested);
+            const row = new ActionRowBuilder().addComponents(interested, notinrested);
 
         const embededCollabMessage = await client.channels.cache.get(config.channel_ids.COLLAB_CHANNEL_ID).send({embeds: [embed], components: [row]});
 
@@ -80,8 +85,9 @@ module.exports = {
             platform: platform,
             game: game,
             time: date,
-            attendies: '[\''+ interaction.user.id +'\']',
-            streaming: streaming
+            attendies: '["'+ interaction.user.id +'"]',
+            streaming: streaming,
+            messageID: embededCollabMessage.id
         })
 
         

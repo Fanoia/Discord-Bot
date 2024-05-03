@@ -1,13 +1,14 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const wait = require('node:timers/promises').setTimeout;
 const fs = require('node:fs');
+const log = require('../logger.js');
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 
 module.exports = {
     name: Events.GuildMemberUpdate,
     async execute(oldMember, newMember, client) {
         //User gets role added
-        console.log("FIRED Guild Member Update Event")
+        log.info("FIRED Guild Member Update Event")
 
         // User got role added
         if (newMember.roles.cache.size > oldMember.roles.cache.size) {

@@ -54,8 +54,14 @@ module.exports = {
 				const filePath = path.join(buttonsPath, file);
 				const event = require(filePath);
 				if (interaction.message.channelId === config.channel_ids.COLLAB_CHANNEL_ID){
+					if (interaction.customId === 'yes' | interaction.customId === 'no') {
+						if (event.name === 'collabdelete') {
+						await event.ButtonHandle(interaction, interaction.client);
+						}
+					} else {
 					if (event.name === 'collab') {
 						await event.ButtonHandle(interaction, interaction.client);
+					}
 					}
 				} else {
 					return;
