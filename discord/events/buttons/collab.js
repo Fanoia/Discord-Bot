@@ -20,7 +20,8 @@ const DBEdit = fanoiadb.define('collabs', {
     time: Sequelize.STRING,
     attendies: Sequelize.STRING,
     streaming: Sequelize.BOOLEAN,
-    messageID: Sequelize.STRING
+    messageID: Sequelize.STRING,
+    nsfw: Sequelize.BOOLEAN
 
 });
 
@@ -67,6 +68,7 @@ module.exports = {
                     { name: 'Is it being Streamed?', value: `${streaming}`, inline: true},
                     { name: 'Collab Host/Requester', value: '<@' + message.makerUserID + '>'},
                     { name: 'Collab Attendees', value: `${await AttendeesEmbed(attendiesarray)}`},
+                    { name: 'Is NSFW Language allowed?' , value: `${message.nsfw}`},
                 )
                 .setThumbnail('https://cdn.highrepublic.live/fanoia/SiteLogoNoText.png')
                 .setTimestamp(new Date(date * 1000))
@@ -80,7 +82,7 @@ module.exports = {
                 const notinrested = new ButtonBuilder()
                 .setCustomId('notinterested')
                 .setLabel('Not Interested')
-                .setEmoji('❌')
+                .setEmoji('🔕')
                 .setStyle(ButtonStyle.Danger);
 
                 const row = new ActionRowBuilder().addComponents(interested, notinrested);
@@ -147,7 +149,7 @@ module.exports = {
                 const notinrested = new ButtonBuilder()
                 .setCustomId('notinterested')
                 .setLabel('Not Interested')
-                .setEmoji('❌')
+                .setEmoji('🔕')
                 .setStyle(ButtonStyle.Danger);
 
                 const row = new ActionRowBuilder().addComponents(interested, notinrested);
