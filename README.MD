@@ -12,6 +12,10 @@ Use docker-compose up -d in the root dir of this repo after making a .env contai
 
 /rpsmenu
 
+/nm <color> <string>
+
+/twitchlink <Twitch> [<code>]
+
 # Quotes While Developing 
 
 "This was made needlessly complicated because I hate myself. No one tells me what to do." - ThalloS 2024

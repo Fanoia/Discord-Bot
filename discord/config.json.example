@@ -11,8 +11,30 @@
 
     "channel_ids": {
     "TALENT_CHANNEL_ID": "TALENT_CENTRAL_CHANNEL_ID",
-    "STAFF_CHANNEL_ID": "STAFF_GENERAL_CHANNEL_ID"
+    "STAFF_CHANNEL_ID": "STAFF_GENERAL_CHANNEL_ID",
+    "COLLAB_CHANNEL_ID": "ID_HERE",
+    "LIVE_NOTIFICATION_ID": "LIVE_ID_HERE"
 
+    },
+    "twitch_api":{
+        "CLIENT_ID": "TWITCH_CLIENT_ID",
+        "CLIENT_SECRET": "TWITCH_CLIENT_SECRET",
+        "broadcasters": [
+            "1130819523",
+            "563100586",
+            "855564285",
+            "548086789",
+            "256382881",
+            "46230010",
+            "145162848",
+            "1841586",
+            "560079029",
+            "167580569",
+            "45317396"
+
+            // This is a example list
+        ]
+    
     }
 
 }

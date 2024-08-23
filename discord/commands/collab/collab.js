@@ -68,10 +68,10 @@ module.exports = {
             .setFooter({ text: 'Fanoia', iconURL: 'https://cdn.discordapp.com/avatars/1235719525559963678/2c3a08a00b6d2f76c3e0210481058b23.png?size=1024' });
 
             const interested = new ButtonBuilder()
-            .setCustomId('interested')
-            .setLabel('Interested')
-            .setEmoji('✅')
-            .setStyle(ButtonStyle.Success);
+                .setCustomId('interested')
+                .setLabel('Interested')
+                .setEmoji('✅')
+                .setStyle(ButtonStyle.Success);
             const notinrested = new ButtonBuilder()
                 .setCustomId('notinterested')
                 .setLabel('Not Interested')

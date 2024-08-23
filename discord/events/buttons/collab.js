@@ -136,6 +136,7 @@ module.exports = {
                     { name: 'Is it being Streamed?', value: `${streaming}`, inline: true},
                     { name: 'Collab Host/Requester', value: '<@' + message.makerUserID + '>'},
                     { name: 'Collab Attendees', value: `${await AttendeesEmbed(attendiesarray)}`},
+                    { name: 'Is NSFW Language allowed?' , value: `${message.nsfw}`},
                 )
                 .setThumbnail('https://cdn.highrepublic.live/fanoia/SiteLogoNoText.png')
                 .setTimestamp(new Date(date * 1000))
