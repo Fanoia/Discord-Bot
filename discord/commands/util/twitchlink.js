@@ -127,7 +127,7 @@ async function sendCode(userID, username, twitchID, code){
 	const codea = code
 	
 	var options = {
-		url: "http://172.18.0.1:8200/api/sendmessage",
+		url: "https://#################/api/sendmessage",
 		body: {
 			channel: username,
 			message: `Your code is: ${codea}`

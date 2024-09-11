@@ -1,5 +1,10 @@
-const { Client, Collection, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, EmbedBuilder, Embed } = require('discord.js');
 const fs = require('node:fs');
+const wait = require('node:timers/promises').setTimeout;
+const express = require('express');
+const crypto = require('crypto')
+const app = express();
+const bodyParser = require('body-parser');
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 const request = require('request');
 const path = require('node:path');
@@ -39,39 +44,15 @@ for (const file of eventFiles) {
 
 
 client.login(TOKEN);
+let isConnectedAndSubbed = false;
 
-
-const trefresh_token = fs.readFileSync('./refreshtoken.txt', 'utf8');
-const taccess_token = fs.readFileSync('./accesstoken.txt', 'utf8');
-const tfrefresh_token = fs.readFileSync('./frefreshtoken.txt', 'utf8');
-const tfaccess_token = fs.readFileSync('./faccesstoken.txt', 'utf8');
+let newConnectionNum = 0;
 const taaccess_token = fs.readFileSync('./aaccesstoken.txt', 'utf8');
 const tclient_id = config.twitch_api.CLIENT_ID;
 const tclient_secret = config.twitch_api.CLIENT_SECRET;
 refreshToken()
-frefreshToken()
+let timerDisconnected = 0;
 
-const Websocket = require('ws');
-const WebSocketClient = new Websocket('wss://eventsub.wss.twitch.tv/ws');
-
-WebSocketClient.on('open', () => {
-	log.info("Opened to twitch!")
-});
-WebSocketClient.on('message', (messagea) => {
-	log.info(messagea)
-	const message = JSON.parse(messagea)
-	if (message.metadata.message_type == "session_welcome") {
-		log.debug("Session welcome!")
-		sendSub(message)
-	}
-	if (message.metadata.message_type == "notification") {
-		log.debug("Session notification!")
-		handleNotification(message)
-	}
-})
-WebSocketClient.on('close', () => {
-	log.info("Closed to twitch!")
-})
 
 function refreshToken () {
 
@@ -81,8 +62,7 @@ function refreshToken () {
 		'content-type': 'application/x-www-form-urlencoded',
 	  },
 	  form: {
-		grant_type: 'refresh_token',
-		refresh_token: trefresh_token,
+		grant_type: 'client_credentials',
 		client_id: tclient_id,
 		client_secret: tclient_secret
 	  },
@@ -93,77 +73,15 @@ function refreshToken () {
 	  if (!error && response.statusCode === 200) {
 		// use the access token to access the Spotify API
 		var access_token = body.access_token;
-		fs.writeFileSync('./refreshtoken.txt', body.refresh_token, 'utf8');
-		fs.writeFileSync('./accesstoken.txt', body.access_token, 'utf8');
-		log.debug("Refreshed token!")
-	  }
-	})
-  
-  }
-function frefreshToken() {
-
-	var authOptions = {
-	  url: 'https://id.twitch.tv/oauth2/token',
-	  headers: {
-		'content-type': 'application/x-www-form-urlencoded',
-	  },
-	  form: {
-		grant_type: 'refresh_token',
-		refresh_token: tfrefresh_token,
-		client_id: tclient_id,
-		client_secret: tclient_secret
-	  },
-	  json: true
-	};
-  
-	request.post(authOptions, function(error, response, body) {
-	  if (!error && response.statusCode === 200) {
-		// use the access token to access the Spotify API
-		var access_token = body.access_token;
-		fs.writeFileSync('./frefreshtoken.txt', body.refresh_token, 'utf8');
-		fs.writeFileSync('./faccesstoken.txt', body.access_token, 'utf8');
-		log.debug("Refreshed token!")
+		fs.writeFileSync('./aaccesstoken.txt', body.access_token, 'utf8');
+		log.debug("Refreshed token! " + body.access_token)
 	  }
 	})
   
   }
 
 
-function sendSub (message) {
-	for (var i = 0; i < config.twitch_api.broadcasters.length; i++) {
-		var options = {
-			uri: 'https://api.twitch.tv/helix/eventsub/subscriptions',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': 'Bearer ' + taccess_token,
-				'Client-Id': tclient_id
-			},
-			body: {
-				type: 'stream.online',
-				version: '1',
-				condition: {
-					broadcaster_user_id: config.twitch_api.broadcasters[i]
-				},
-				transport: {
-					method: 'websocket',
-					session_id: message.payload.session.id
-				}
-			},
-			json: true
-		};
-		request.post(options, function(error, response, body) {
-			if (!error && response.statusCode === 202) {
-				log.info("Added a Sub to "+ config.twitch_api.broadcasters[i])
-			}
-			else {
-				log.error(error)
-				console.log(response)
-			}
-		})
-	}
-	
 
-}
 
 const Sequelize = require('sequelize');
 const fanoiadb = new Sequelize('database', 'user', 'password', {
@@ -182,43 +100,6 @@ const DBEdit = fanoiadb.define('user_settings', {
 
 });
 DBEdit.sync();
-async function handleNotification (message) {
-	
-	if (config.twitch_api.broadcasters.indexOf(message.payload.event.broadcaster_user_id) !== -1) {
-		var user = await DBEdit.findOne({ where: { twitchID: message.payload.event.broadcaster_user_id } })
-		if (user) {
-			let tmessage;
-			let color;
-			console.log(user)
-			log.info(user.color)
-			if (!user.message) {
-				tmessage = "Go Live Notification!"
-			} else {
-				tmessage = user.message
-			}
-			if (!user.color) {
-				color = "#add8e6"
-			} else {
-				color = user.color
-			}
-			const embed = new EmbedBuilder()
-				.setColor(color)
-				.setTitle(message.payload.event.broadcaster_user_name + ' is now live!')
-				.setURL('https://twitch.tv/' + message.payload.event.broadcaster_user_login)
-				.setImage('https://static-cdn.jtvnw.net/previews-ttv/live_user_' + message.payload.event.broadcaster_user_login +'-1280x720.jpg')
-			client.channels.cache.get(config.channel_ids.LIVE_NOTIFICATION_ID).send({content: "## " + tmessage, embeds: [embed]})
-
-		} else {
-			const color = "#add8e6"
-			const embed = new EmbedBuilder()
-				.setColor(color)
-				.setTitle(message.payload.event.broadcaster_user_name + ' is now live!')
-				.setURL('https://twitch.tv/' + message.payload.event.broadcaster_user_login)
-				.setImage('https://static-cdn.jtvnw.net/previews-ttv/live_user_' + message.payload.event.broadcaster_user_login +'-1280x720.jpg')
-			client.channels.cache.get(config.channel_ids.LIVE_NOTIFICATION_ID).send({content: "## " + message.payload.event.broadcaster_user_name + " is now live!", embeds: [embed]})
-		}
-	}
-}
 
 
 setInterval(function() {
@@ -234,3 +115,262 @@ setInterval(function() {
         }
     });
 }, 60000);
+
+
+
+
+
+setInterval(() => {
+	refreshToken()
+}, 600000);
+
+const TWITCH_MESSAGE_ID = 'Twitch-Eventsub-Message-Id'.toLowerCase();
+const TWITCH_MESSAGE_TIMESTAMP = 'Twitch-Eventsub-Message-Timestamp'.toLowerCase();
+const TWITCH_MESSAGE_SIGNATURE = 'Twitch-Eventsub-Message-Signature'.toLowerCase();
+const MESSAGE_TYPE = 'Twitch-Eventsub-Message-Type'.toLowerCase();
+
+// Notification message types
+const MESSAGE_TYPE_VERIFICATION = 'webhook_callback_verification';
+const MESSAGE_TYPE_NOTIFICATION = 'notification';
+const MESSAGE_TYPE_REVOCATION = 'revocation';
+
+// Prepend this string to the HMAC that's created from the message
+const HMAC_PREFIX = 'sha256=';
+
+var port = 8100
+app.use(bodyParser.json({
+    verify: (req, res, buf) => {
+        // Small modification to the JSON bodyParser to expose the raw body in the request object
+        // The raw body is required at signature verification
+        req.rawBody = buf
+    }
+}))
+
+app.post('/eventsub', async (req, res) => {
+    let secret = getSecret();
+    let message = getHmacMessage(req);
+    let hmac = HMAC_PREFIX + getHmac(secret, message);  // Signature to compare
+
+    if (true === verifyMessage(hmac, req.headers[TWITCH_MESSAGE_SIGNATURE])) {
+        console.log("signatures match");
+
+        // Get JSON object from body, so you can process the message.
+        let notification = req.body
+        
+        if (MESSAGE_TYPE_NOTIFICATION === req.headers[MESSAGE_TYPE]) {
+			if (`${notification.subscription.type}` === "stream.online") {
+				await handleNotification(notification.event)
+			}
+
+            console.log(`Event type: ${notification.subscription.type}`);
+            console.log(JSON.stringify(notification.event, null, 4));
+            
+            res.sendStatus(204);
+        }
+        else if (MESSAGE_TYPE_VERIFICATION === req.headers[MESSAGE_TYPE]) {
+            res.set('Content-Type', 'text/plain').status(200).send(notification.challenge);
+        }
+        else if (MESSAGE_TYPE_REVOCATION === req.headers[MESSAGE_TYPE]) {
+            res.sendStatus(204);
+
+            console.log(`${notification.subscription.type} notifications revoked!`);
+            console.log(`reason: ${notification.subscription.status}`);
+            console.log(`condition: ${JSON.stringify(notification.subscription.condition, null, 4)}`);
+        }
+        else {
+            res.sendStatus(204);
+            console.log(`Unknown message type: ${req.headers[MESSAGE_TYPE]}`);
+        }
+    }
+    else {
+        console.log('403');    // Signatures didn't match.
+        res.sendStatus(403);
+    }
+})
+  
+app.listen(port, async () => {
+  console.log(`Example app listening at http://localhost:${port}`);
+  sendSubs()
+})
+
+
+function getSecret() {
+    return 'hcQmes29DuV9IDJMfo8myhcQmes29DuV9IDJMfo8my';
+}
+
+// Build the message used to get the HMAC.
+function getHmacMessage(request) {
+    return (request.headers[TWITCH_MESSAGE_ID] + 
+        request.headers[TWITCH_MESSAGE_TIMESTAMP] + 
+        request.rawBody);
+}
+
+// Get the HMAC.
+function getHmac(secret, message) {
+    return crypto.createHmac('sha256', secret)
+    .update(message)
+    .digest('hex');
+}
+
+// Verify whether our hash matches the hash that Twitch passed in the header.
+function verifyMessage(hmac, verifySignature) {
+    return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(verifySignature));
+}
+
+
+
+
+
+async function sendSubs() {
+
+	for (var i = 0; i < config.twitch_api.broadcasters.length; i++) {
+
+		var broadcaster = config.twitch_api.broadcasters[i]
+		var secret = getSecret();
+		var token = taaccess_token;
+
+		var options = {
+			url: 'https://api.twitch.tv/helix/eventsub/subscriptions',
+			headers: {
+				'Client-ID': 'yu8es46owaxilpywbns6el6580a48j',
+				'Authorization': 'Bearer ' + token 
+			},
+			json: true,
+			body: {
+				"type": "stream.online",
+				"version": "1",
+				"condition": {
+				"broadcaster_user_id": broadcaster
+				},
+				"transport": {
+				"method": "webhook",
+				"callback": "https://events.fanoia.live/eventsub",
+				"secret": secret
+				}
+			}
+		}
+
+		request.post(options, async function(error, response, body) {
+			console.log(body)
+			if (!error && response.statusCode === 204) {
+			}
+		})
+		await wait(1000)
+	}
+	
+}
+
+
+async function handleNotification(event) {
+	console.log(event)
+	if (config.twitch_api.broadcasters.indexOf(event.broadcaster_user_id !== -1)) {
+		var options = {
+			url: "https://api.twitch.tv/helix/streams?user_id=" + event.broadcaster_user_id,
+			headers: {
+				'Client-ID': 'yu8es46owaxilpywbns6el6580a48j',
+				'Authorization': 'Bearer ' + taaccess_token
+			},
+			json: true
+		}
+		request.get(options, async function(error, response, body) {  
+			console.log(body) 
+			if (!error && response.statusCode === 200) {
+				var user = await DBEdit.findOne({ where: { twitchID: event.broadcaster_user_id } })
+				if (user) {
+					var channel = body.data[0]
+					var title = channel.title
+					var game = channel.game_name
+					var viewer_count = channel.viewer_count
+					let tmessage;
+					let color;
+					if (!user.color){
+						color = "#add8e6"
+					} else {
+						color = user.color
+					}
+
+					if (!user.message) {
+						tmessage = event.broadcaster_user_name + " is live!"
+					} else {
+						tmessage = user.message
+					}
+
+					var embed = new EmbedBuilder()
+						.setColor(color)
+						.setTitle(title)
+						.setURL('https://twitch.tv/' + event.broadcaster_user_login)
+						.addFields(
+							{ name: 'Game', value: `${game}`, inline: true },
+							{ name: 'Viewers', value: `${viewer_count}`, inline: true }
+						)
+						.setImage('https://static-cdn.jtvnw.net/previews-ttv/live_user_' + event.broadcaster_user_login + '-1280x720.jpg')
+						.setTimestamp(new Date)
+						.setFooter({text:"FanoiaTwitchNotificaions"})
+						
+					client.channels.cache.get(config.channel_ids.LIVE_NOTIFICATION_ID).send({ content: "## "+ tmessage, embeds: [embed] })
+					
+				
+				
+
+
+					} else {
+						const color = "#add8e6"
+						var channel = body.data[0]
+						var title = channel.title
+						var game = channel.game_name
+						var viewer_count = channel.viewer_count
+						const embed = new EmbedBuilder()
+							.setColor(color)
+							.setTitle(title)
+							.setURL('https://twitch.tv/' + event.broadcaster_user_login)
+							.addFields(
+								{ name: 'Game', value: `${game}`, inline: true },
+								{ name: 'Viewers', value: `${viewer_count}`, inline: true }
+							)
+							.setImage('https://static-cdn.jtvnw.net/previews-ttv/live_user_' + event.broadcaster_user_login + '-1280x720.jpg')
+							.setTimestamp(new Date)
+							.setFooter({text:"FanoiaTwitchNotificaions"})
+						client.channels.cache.get(config.channel_ids.LIVE_NOTIFICATION_ID).send({content: "## " + event.broadcaster_user_name + " is now live!", embeds: [embed]})
+					}
+				}
+			})
+		}
+	}
+
+ 
+
+
+
+
+const DBEdit2 = fanoiadb.define('collabs', {
+
+	makerUserID: Sequelize.STRING,
+	makerName: Sequelize.STRING,
+	platform: Sequelize.STRING,
+	game: Sequelize.STRING,
+	time: Sequelize.STRING,
+	attendies: Sequelize.STRING,
+	streaming: Sequelize.BOOLEAN,
+	messageID: Sequelize.STRING,
+	nsfw: Sequelize.BOOLEAN,
+	hasAlerted: Sequelize.BOOLEAN
+
+});
+DBEdit2.sync();
+
+setInterval(checkCollabsTime, 60000);
+
+async function checkCollabsTime() {
+	const collabs = await DBEdit2.findAll();
+	for (var i = 0; i < collabs.length; i++) {
+		const collab = collabs[i];
+		if (collab.time <= Date.now() + 3600000) {
+			if (!collab.hasAlerted) {
+				await DBEdit2.update({ hasAlerted: true }, { where: { id: collab.id } });
+				var users = JSON.parse(collab.attendies)
+				var user_ping = users.map(id => `<@${id}>`).join(', ');
+				client.channels.cache.get(config.channel_ids.COLLAB_ALERT_ID).send({ content: user_ping + "\n# Collab \"" + collab.game + "\" starts in 1 HOUR or less.\nIF you cannot attend, please remove yourself from the attendees list [here](https://discord.com/channels/" + config.information.GUILD_ID + "/" + config.channel_ids.COLLAB_CHANNEL_ID + "/" + collab.messageID + ")" })
+			}
+		}
+	}
+}

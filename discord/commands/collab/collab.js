@@ -20,7 +20,8 @@ const DBEdit = fanoiadb.define('collabs', {
     attendies: Sequelize.STRING,
     streaming: Sequelize.BOOLEAN,
     messageID: Sequelize.STRING,
-    nsfw: Sequelize.BOOLEAN
+    nsfw: Sequelize.BOOLEAN,
+    hasAlerted: Sequelize.BOOLEAN
 
 });
 
