@@ -1,4 +1,4 @@
-const { Client, Collection, GatewayIntentBits, EmbedBuilder, Embed } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('node:fs');
 const wait = require('node:timers/promises').setTimeout;
 const express = require('express');
@@ -512,7 +512,7 @@ act.use(express.static(path.join(__dirname, "public")))
 .use(bodyParser.json())
 .use(bodyParser.urlencoded({ extended: true }))
 .use((req, res, next) => {
-	const timezone = moment.tz.guess();
+	const timezone = moment.tz.guess(true);
 	req.timezone = timezone;
 	next();
 })
@@ -531,7 +531,7 @@ act.set("view engine", "ejs");
 
 act.get ('/', async (req, res) => {
 	if(req.session && req.session.passport) {
-        var html = await ejs.renderFile("views/indexl.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true});
+        var html = await ejs.renderFile("views/indexl.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, moment: moment, timezone: req.timezone});
         res.send(html);
       } else {
         res.render("index");
@@ -602,11 +602,47 @@ act.get('/join/:id', async (req, res) => {
 	if(req.session && req.session.passport) {
 		var found = await DBEdit2.findOne({ where: { messageID: req.params.id } })	
 		if (found) {
+			var attendiesarray = JSON.parse(found.attendies)
 			if (JSON.parse(found.attendies).indexOf(req.session.passport.user.id) !== -1) {
 				res.redirect('/collabs/' + req.params.id)
 				return
 			}
+			attendiesarray.push(req.session.passport.user.id)
 			await DBEdit2.update({ attendies: JSON.stringify([...JSON.parse(found.attendies), req.session.passport.user.id]) }, { where: { messageID: req.params.id } })
+
+			const embed = new EmbedBuilder()
+                .setColor(0xCD3280)
+                .setTitle('**Collab Request**')
+                .addFields(
+                    { name: 'Platform', value: `${found.platform}`, inline: true},
+                    { name: 'Game', value: `${found.game}`, inline: true},
+                    { name: 'Date', value: `<t:${found.time}:F>`},
+                    { name: 'Is it being Streamed?', value: `${found.streaming}`, inline: true},
+                    { name: 'Collab Host/Requester', value: '<@' + found.makerUserID + '>'},
+                    { name: 'Collab Attendees', value: `${await AttendeesEmbed(attendiesarray)}`},
+                    { name: 'Is NSFW Language allowed?' , value: `${found.nsfw}`},
+                )
+                .setThumbnail('https://cdn.highrepublic.live/fanoia/SiteLogoNoText.png')
+                .setTimestamp(new Date(found.time * 1000))
+                .setFooter({ text: 'Fanoia', iconURL: 'https://cdn.discordapp.com/avatars/1235719525559963678/2c3a08a00b6d2f76c3e0210481058b23.png?size=1024' });
+
+                const interested = new ButtonBuilder()
+                .setCustomId('interested')
+                .setLabel('Interested')
+                .setEmoji('✅')
+                .setStyle(ButtonStyle.Success);
+                const notinrested = new ButtonBuilder()
+                .setCustomId('notinterested')
+                .setLabel('Not Interested')
+                .setEmoji('🔕')
+                .setStyle(ButtonStyle.Danger);
+
+                const row = new ActionRowBuilder().addComponents(interested, notinrested);
+				client.channels.fetch(config.channel_ids.COLLAB_CHANNEL_ID).then(channel => {
+					channel.fetch().then(async channel => {
+						await channel.messages.fetch(found.messageID).then(async message => await message.edit({ embeds: [embed], components: [row] }))
+					})
+				})
 			res.redirect('/collabs/' + req.params.id)
 		} else {
 			res.status(404).json({ error: "Collab not found, Please try again later!" });
@@ -618,12 +654,47 @@ act.get('/leave/:id', async (req, res) => {
 	if(req.session && req.session.passport) {
 		var found = await DBEdit2.findOne({ where: { messageID: req.params.id } })	
 		if (found) {
-			if (JSON.parse(found.attendies).includes(req.session.passport.user.id)) {
+			var attendiesarray = JSON.parse(found.attendies)
+			if (attendiesarray.includes(req.session.passport.user.id)) {
 				if (found.makerUserID == req.session.passport.user.id) {
 					res.status(403).json({ error: "You cannot leave your own collab! Please delete it via the discord channel." });
 					return
 				}
-			await DBEdit2.update({ attendies: JSON.stringify([...JSON.parse(found.attendies), req.session.passport.user.id]) }, { where: { messageID: req.params.id } })
+			attendiesarray.splice(attendiesarray.indexOf(req.session.passport.user.id), 1);
+			await DBEdit2.update({ attendies: JSON.stringify(attendiesarray) }, { where: { messageID: req.params.id } })
+			const embed = new EmbedBuilder()
+                .setColor(0xCD3280)
+                .setTitle('**Collab Request**')
+                .addFields(
+                    { name: 'Platform', value: `${found.platform}`, inline: true},
+                    { name: 'Game', value: `${found.game}`, inline: true},
+                    { name: 'Date', value: `<t:${found.time}:F>`},
+                    { name: 'Is it being Streamed?', value: `${found.streaming}`, inline: true},
+                    { name: 'Collab Host/Requester', value: '<@' + found.makerUserID + '>'},
+                    { name: 'Collab Attendees', value: `${await AttendeesEmbed(attendiesarray)}`},
+                    { name: 'Is NSFW Language allowed?' , value: `${found.nsfw}`},
+                )
+                .setThumbnail('https://cdn.highrepublic.live/fanoia/SiteLogoNoText.png')
+                .setTimestamp(new Date(found.time * 1000))
+                .setFooter({ text: 'Fanoia', iconURL: 'https://cdn.discordapp.com/avatars/1235719525559963678/2c3a08a00b6d2f76c3e0210481058b23.png?size=1024' });
+
+                const interested = new ButtonBuilder()
+                .setCustomId('interested')
+                .setLabel('Interested')
+                .setEmoji('✅')
+                .setStyle(ButtonStyle.Success);
+                const notinrested = new ButtonBuilder()
+                .setCustomId('notinterested')
+                .setLabel('Not Interested')
+                .setEmoji('🔕')
+                .setStyle(ButtonStyle.Danger);
+
+                const row = new ActionRowBuilder().addComponents(interested, notinrested);
+				client.channels.fetch(config.channel_ids.COLLAB_CHANNEL_ID).then(channel => {
+					channel.fetch().then(async channel => {
+						await channel.messages.fetch(found.messageID).then(async message => await message.edit({ embeds: [embed], components: [row] }))
+					})
+				})
 			res.redirect('/collabs/' + req.params.id)
 			} else {
 				res.status(403).json({ error: "You are not in this collab! Join it first!" });
@@ -634,3 +705,86 @@ act.get('/leave/:id', async (req, res) => {
 	}
 })
 
+act.get('/newcollab', async (req, res) => {
+	if(req.session && req.session.passport) {
+		if (req.query.game){
+			let streaming = false
+			let nsfw = false
+			if (req.query.isStreaming == "on") { streaming = true }
+			if (req.query.isNSFW == "on") { nsfw = true }
+			var json = {
+				game: req.query.game,
+				makerId: req.session.passport.user.id,
+				makerUsername: req.session.passport.user.username,
+				platform: req.query.platform,
+				isStreaming: streaming,
+				isNSFW: nsfw,
+				date: await getDate(req.query.date, req.timezone),
+
+			}
+			const embed = new EmbedBuilder()
+            .setColor(0xCD3280)
+            .setTitle('**Collab Request**')
+            .addFields(
+                { name: 'Platform', value: `${json.platform}`, inline: true},
+                { name: 'Game', value: `${json.game}`, inline: true},
+                { name: 'Date', value: `<t:${json.date}:F>`},
+                { name: 'Is it being Streamed?', value: `${json.isStreaming}`, inline: true},
+                { name: 'Collab Host/Requester', value: '<@' + json.makerId + '>'},
+                { name: 'Collab Attendees', value: '<@' + json.makerId + '>'},
+                { name: 'Is NSFW Language allowed?' , value: `${json.isNSFW}`},
+            )
+            .setThumbnail('https://cdn.highrepublic.live/fanoia/SiteLogoNoText.png')
+            .setTimestamp(new Date(json.date * 1000))
+            .setFooter({ text: 'Fanoia', iconURL: 'https://cdn.discordapp.com/avatars/1235719525559963678/2c3a08a00b6d2f76c3e0210481058b23.png?size=1024' });
+
+            const interested = new ButtonBuilder()
+                .setCustomId('interested')
+                .setLabel('Interested')
+                .setEmoji('✅')
+                .setStyle(ButtonStyle.Success);
+            const notinrested = new ButtonBuilder()
+                .setCustomId('notinterested')
+                .setLabel('Not Interested')
+                .setEmoji('🔕')
+                .setStyle(ButtonStyle.Danger);
+
+            const row = new ActionRowBuilder().addComponents(interested, notinrested);
+
+			const messageID = await client.channels.cache.get(config.channel_ids.COLLAB_CHANNEL_ID).send({ embeds: [embed], components: [row] })
+			await DBEdit2.create({makerUserID: json.makerId,
+				makerName: json.makerUsername,
+				platform: json.platform,
+				game: json.game,
+				time: json.date,
+				attendies: JSON.stringify([json.makerId]),
+				streaming: json.isStreaming,
+				messageID: messageID.id,
+				nsfw: json.isNSFW,
+				hasAlerted: false})
+			res.redirect('/collabs/' + messageID.id)
+			return
+		}
+		var html = await ejs.renderFile("views/newcollab.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, moment: moment});
+		res.send(html);
+	} else {
+		res.status(403).redirect("/");
+	}
+})
+
+async function getDate(date, timezone) {
+	var d = moment(date);
+	var d2 = moment.tz(d, timezone);
+
+	return d2.unix();
+
+}
+
+async function AttendeesEmbed(attendiesarray){
+
+    return new Promise((resolve, reject) => {
+        const formattedAttendees = attendiesarray.map(id => `<@${id}>`).join(', ');
+        resolve(formattedAttendees);
+    })
+
+}

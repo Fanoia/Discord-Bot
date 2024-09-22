@@ -1,4 +1,6 @@
 
+
+
 <% 
 
 
@@ -8,6 +10,10 @@ let talent = false;
 let staff = false;
 let rateLimit = false;
 
+
+
+
+
 %>
 
 <!DOCTYPE html>
@@ -15,13 +21,67 @@ let rateLimit = false;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <link rel="stylesheet" href="/css/style.css">
-    <title>FanoiaEN Portal</title>
+    <title>FanoiaEN Portal - Collabs - New collab</title>
+    <style>
+    form {
+        width: 100%;
+        max-width: 400px;
+        margin: auto;
+        padding: 20px;
+        background-color: #add8e6; /* Light blue background */
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        font-family: Arial, sans-serif;
+        }
+
+        label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #657d85; /* Darker color for labels */
+        }
+
+        input[type="text"],
+        input[type="datetime-local"],
+        select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #657d85; /* Darker border */
+        border-radius: 5px;
+        box-sizing: border-box;
+        font-size: 16px;
+        background-color: rgb(134, 134, 134); /* Keeps input fields white */
+        color: #657d85; /* Darker text inside inputs */
+        }
+
+        input[type="checkbox"] {
+        margin-right: 10px;
+        }
+
+        input[type="submit"] {
+        width: 100%;
+        padding: 10px;
+        background-color: #657d85; /* Darker color for the button */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        }
+
+        input[type="submit"]:hover {
+        background-color: #576c74; /* Slightly darker hover effect for the button */
+        }
+
+      </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="#">
                 <img src="/img/logo.png" alt="Logo" width="96" height="90" class="d-inline-block align-text-top">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,56 +123,49 @@ let rateLimit = false;
         </div>
     </div>
 
-        <div class="welcome-container">
 
-            <% if (rateLimit) { %>
-                <h1 class="welcome-text">RateLimited. Try again in 30 seconds.</h1>
-            <% } else { %>
-                <h1 class="welcome-text">Welcome <%= user.global_name %></h1>
-            <% } %>
+    <div class="collab-form">
+        <form>
+            <input type="hidden" id="makerUserId" name="makerUserId" value="<%= user.id %>">
+            <input type="hidden" id="makerName" name="makerName" value="<%= user.username %>">
 
-            <br>
-            <h4 class="text-muted welcome-text">You have no notifications</h4>
-        </div>
+            <label for="game">Game:</label>
+            <input type="text" id="game" name="game"><br><br>
 
+            <label for="date">Date:</label>
+            <input type="datetime-local" id="date" name="date"><br><br>
 
-        <div class="at-a-glance-container">
-            <div class="open-tickets-container">
-            
-                <!-- Open Tickets -->
-            
-            </div>
+            <label for="platform">Platform:</label>
+            <select id="platform" name="platform">
+                <option value="">Select a platform</option>
+                <option value="PC">PC</option>
+                <option value="Console">Console</option>
+                <option value="Mobile">Mobile</option>
+            </select><br><br>
 
-            <div class="upcoming-collabs-container">
-            
-                <!-- Upcoming Collabs -->
-                <% 
-                var found = await DBEdit2.findAll();
-                for (var i = 0; i < found.length; i++) {
-                    var collab = found[i];
-                    if (JSON.parse(collab.attendies).indexOf(user.id) !== -1) {
-                        var localDate = moment.unix(collab.time).tz(timezone);
-                        var formattedDate = localDate.format('MM-DD-YYYY hh:mm A');
-                        var game = collab.game;
+            <label for="isStreaming">Is Streaming:</label>
+            <input type="checkbox" id="isStreaming" name="isStreaming"><br><br>
 
-                    %>
-                        <a href="/collabs/<%= collab.messageID %>">
-                            <div class="upcoming-collab-item">
-                                <p class="upcoming-collab-text"><%= game %></p>
-                                <p class="upcoming-collab-text"><%= formattedDate %></p>
-                            </div>
-                        </a><%
-                    }}
-%>
-                
-            </div>
-            
-        </div>
+            <label for="isNSFW">Is NSFW (Language/Topic):</label>
+            <input type="checkbox" id="isNSFW" name="isNSFW"><br><br>
+
+            <input type="submit" value="Create Collaboration">
+        </form>
+    </div>
+    <script src="/js/bootstrap/bootstrap.bundle.min.js"></script>
 
 
 
-      <script src="/js/bootstrap/bootstrap.bundle.min.js"></script>
-      <script>window.addEventListener('resize', function() {
+
+
+
+
+
+
+
+
+
+    <script>window.addEventListener('resize', function() {
   if (window.innerWidth < 800) {
     // Hide text in side nav
     document.querySelectorAll('.side-nav-text').forEach(function(text) {
@@ -149,6 +202,7 @@ let rateLimit = false;
 });
 
 window.addEventListener('load', function() {
+  var collabInfoContainer = document.querySelector('.collab-info-container');
   var textElement = document.getElementsByClassName('side-nav-text');
   var textElement2 = document.querySelector('.side-nav-role');
   var textElement3 = document.querySelector('.side-nav-nickname');
