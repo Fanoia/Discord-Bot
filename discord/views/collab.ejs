@@ -1,0 +1,189 @@
+
+
+
+<% 
+
+
+
+
+let talent = false;
+let staff = false;
+let rateLimit = false;
+
+
+
+
+const collabID = id;
+
+%>
+
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>FanoiaEN Portal - Collabs - <%= collabID %></title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="/img/logo.png" alt="Logo" width="96" height="90" class="d-inline-block align-text-top">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+              
+                </ul>
+                <div class="d-flex">
+                    <button onclick="window.location.href='/logout'" class="btn btn-primary">Log Out</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="side-nav">
+        <div class="side-nav-info">
+            <img class="side-nav-logo" src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" alt="Logo" width="60" height="60" style="border-radius: 50%;">
+            <div class="side-nav-info-text">
+                <span class="side-nav-nickname"><%= user.global_name %></span>
+                <span class="side-nav-role"><%
+                if (staff) {
+                    %> Staff <%
+                } else if (talent) {
+                    %> Talent <%
+                }
+                %>
+                </span>
+            </div>
+        </div>
+        <div class="side-nav-item">
+            <a class="side-nav-item-text" href="/">
+            <i class="bi bi-house-fill"></i> <p class="side-nav-text">Home</p></a>
+        </div>
+        <div class="side-nav-item">
+            <a class="side-nav-item-text" href="/collabs">
+            <i class="bi bi-people-fill"></i><p class="side-nav-text">Collabs</p></a>
+        </div>
+    </div>
+
+
+        <% 
+        var collab = await DBEdit2.findOne({where: {messageID: collabID}})
+        var game = collab.game
+        var platform = collab.platform
+        var messageID = collab.messageID
+        var time = collab.time
+        var hasAlerted = collab.hasAlerted
+        var attendies = JSON.parse(collab.attendies)
+        var makerName = collab.makerName
+        var streaming = collab.streaming
+        var nsfw = collab.nsfw
+        var localDate = moment.unix(time).tz(timezone);
+        var formattedDate = localDate.format('MM-DD-YYYY hh:mm A');
+                
+        
+        %>
+
+        <div class="collab-info-container">
+            <div class="collab-header">
+                <h2 class="collab-title">Collab Details</h2>
+            </div>
+            <div class="collab-info">
+                <h3 class="collab-game">Game: <%= collab.game %></h3>
+                <h3 class="collab-time">Time: <%= formattedDate %></h3>
+                <h3 class="collab-attendees">Attendees: <%= attendies.length %> <% if (attendies.indexOf(user.id) !== -1) { %> (You are attending!) <% } %></h3>
+                <h3 class="collab-platform">Platform: <%= platform %></h3>
+            </div>
+            <div class="collab-actions">
+                <button class="btn btn-primary" onclick="window.location.href='/join/<%= messageID %>'">Join Collab</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/leave/<%= messageID %>'">Leave Collab</button>
+            </div>
+        </div>
+    
+
+
+
+    <script src="/js/bootstrap/bootstrap.bundle.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>window.addEventListener('resize', function() {
+  if (window.innerWidth < 800) {
+    // Hide text in side nav
+    document.querySelectorAll('.side-nav-text').forEach(function(text) {
+      text.style.display = 'none';
+    });
+    document.querySelectorAll('.side-nav-role').forEach(function(text) {
+      text.style.display = 'none';
+    });
+    document.querySelectorAll('.side-nav-nickname').forEach(function(text) {
+      text.style.display = 'none';
+    });
+    // Show only icons in side nav
+    document.querySelectorAll('.side-nav i').forEach(function(icon) {
+      icon.style.display = 'inline-block';
+    });
+  } else {
+    // Show text in side nav
+    document.querySelectorAll('.side-nav i').forEach(function(icon) {
+      icon.style.display = 'inline-block';
+    });
+    document.querySelectorAll('.side-nav i').forEach(function(icon) {
+      icon.style.display = 'inline-block';
+    });
+    document.querySelectorAll('.side-nav-text').forEach(function(text) {
+      text.style.display = 'inline-block';
+    });
+    document.querySelectorAll('.side-nav-role').forEach(function(text) {
+      text.style.display = 'inline-block';
+    });
+    document.querySelectorAll('.side-nav-nickname').forEach(function(text) {
+      text.style.display = 'inline-block';
+    });
+  }
+});
+
+window.addEventListener('load', function() {
+  var collabInfoContainer = document.querySelector('.collab-info-container');
+  var textElement = document.getElementsByClassName('side-nav-text');
+  var textElement2 = document.querySelector('.side-nav-role');
+  var textElement3 = document.querySelector('.side-nav-nickname');
+
+  if (window.innerWidth < 800) {
+    for (var i = 0; i < textElement.length; i++) {
+    textElement[i].style.display = 'none';
+  }
+    textElement2.style.display = 'none';
+    textElement3.style.display = 'none';
+  } else {
+    for (var i = 0; i < textElement.length; i++) {
+    textElement[i].style.display = 'inline-block';
+  }
+    textElement2.style.display = 'inline-block';
+    textElement3.style.display = 'inline-block';
+  }
+});
+
+
+
+</script>
+</body>
+</html>

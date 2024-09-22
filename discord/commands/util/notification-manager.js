@@ -26,22 +26,22 @@ module.exports = {
 			.setName('color')
 			.setDescription('The color of your notification message. You can also use hex codes.')
 			.setRequired(true)
-			.addChoices(
-				{ name: 'Red', value: 'red' },
-				{ name: 'Green', value: 'green' },
-				{ name: 'Blue', value: 'blue' },
-				{ name: 'Yellow', value: 'yellow' },
-				{ name: 'Purple', value: 'purple' },
-				{ name: 'Orange', value: 'orange' },
-				{ name: 'Pink', value: 'pink' },
-				{ name: 'Grey', value: 'grey' },
-			)
+			.setAutocomplete(true)
 		)
 		.addStringOption(option => option
 			.setName('message')
 			.setDescription('The message of your notification message')
 			.setRequired(true)
 		),
+
+	async autocomplete(interaction) {
+		const focusedOption = interaction.options.getFocused(true);
+		if (focusedOption.name === 'color') {
+			const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink', 'grey'];
+			const filtered = colors.filter((color) => color.startsWith(focusedOption.value));
+			await interaction.respond(filtered.map((color) => ({ name: color, value: color })));
+		} 
+	},
 
 	async execute(interaction) {
 		const color = interaction.options.getString('color');

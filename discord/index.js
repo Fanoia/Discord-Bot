@@ -4,8 +4,10 @@ const wait = require('node:timers/promises').setTimeout;
 const express = require('express');
 const crypto = require('crypto')
 const app = express();
+const moment = require('moment-timezone');
 const bodyParser = require('body-parser');
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+const passport = require('passport');
 const request = require('request');
 const path = require('node:path');
 require('dotenv').config();
@@ -15,7 +17,19 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds , GatewayIntentBi
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
+const ejs = require('ejs')
+const querystring = require('node:querystring');
+const session = require('express-session');
+const { Sequelize, Op, DataTypes} = require('sequelize');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const SESSION_SECRET = config.information.SESSION_SECRET;
 
+
+
+
+
+// Command Handler
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
 	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -30,6 +44,13 @@ for (const folder of commandFolders) {
 		}
 	}
 }
+
+
+
+
+
+
+//Event Handler
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 for (const file of eventFiles) {
@@ -42,12 +63,20 @@ for (const file of eventFiles) {
 	}
 }
 
-
+//Login
 client.login(TOKEN);
+
+
+
+
+
+
+
+//Twitch API (Talent Notifications)
 let isConnectedAndSubbed = false;
 
 let newConnectionNum = 0;
-const taaccess_token = fs.readFileSync('./aaccesstoken.txt', 'utf8');
+let taaccess_token = fs.readFileSync('./aaccesstoken.txt', 'utf8');
 const tclient_id = config.twitch_api.CLIENT_ID;
 const tclient_secret = config.twitch_api.CLIENT_SECRET;
 refreshToken()
@@ -73,6 +102,7 @@ function refreshToken () {
 	  if (!error && response.statusCode === 200) {
 		// use the access token to access the Spotify API
 		var access_token = body.access_token;
+		taaccess_token = body.access_token
 		fs.writeFileSync('./aaccesstoken.txt', body.access_token, 'utf8');
 		log.debug("Refreshed token! " + body.access_token)
 	  }
@@ -83,7 +113,6 @@ function refreshToken () {
 
 
 
-const Sequelize = require('sequelize');
 const fanoiadb = new Sequelize('database', 'user', 'password', {
 	host: 'localhost',
 	dialect: 'sqlite',
@@ -147,6 +176,11 @@ app.use(bodyParser.json({
 }))
 
 app.post('/eventsub', async (req, res) => {
+
+	if (req.rawHeaders[1] !== "events.fanoia.live") {
+		res.status(502).send("Invalid Host.")
+		return
+	}
     let secret = getSecret();
     let message = getHmacMessage(req);
     let hmac = HMAC_PREFIX + getHmac(secret, message);  // Signature to compare
@@ -190,7 +224,7 @@ app.post('/eventsub', async (req, res) => {
   
 app.listen(port, async () => {
   console.log(`Example app listening at http://localhost:${port}`);
-  sendSubs()
+  // sendSubs()
 })
 
 
@@ -340,7 +374,7 @@ async function handleNotification(event) {
  
 
 
-
+// COLLABS Alert code.
 
 const DBEdit2 = fanoiadb.define('collabs', {
 
@@ -364,7 +398,7 @@ async function checkCollabsTime() {
 	const collabs = await DBEdit2.findAll();
 	for (var i = 0; i < collabs.length; i++) {
 		const collab = collabs[i];
-		if (collab.time <= Date.now() + 3600000) {
+		if (collab.time * 1000 <= Date.now() + 3600000) {
 			if (!collab.hasAlerted) {
 				await DBEdit2.update({ hasAlerted: true }, { where: { id: collab.id } });
 				var users = JSON.parse(collab.attendies)
@@ -374,3 +408,229 @@ async function checkCollabsTime() {
 		}
 	}
 }
+
+
+
+const act = express();
+
+
+
+
+const DBEdit3 = fanoiadb.define("users",
+    {
+        discordId: Sequelize.STRING,
+        username: Sequelize.STRING,
+        nickname: Sequelize.STRING,
+        avatar: Sequelize.STRING,
+        talent: Sequelize.BOOLEAN,
+        staff: Sequelize.BOOLEAN,
+        approved: Sequelize.BOOLEAN,
+        token: Sequelize.STRING,
+        expires: Sequelize.DATE
+
+    }
+)
+DBEdit3.sync();
+
+const DiscordStrategy = require('passport-discord').Strategy;
+
+const scopes = ['identify', 'email', 'guilds', 'guilds.members.read'];
+
+passport.use(new DiscordStrategy({
+    authorizationURL: 'https://discord.com/api/oauth2/authorize',
+    clientID: config.information.CLIENT_ID,
+    tokenURL: 'https://discord.com/api/v10/oauth2/token',
+    clientSecret: config.information.CLIENT_SECRET,
+    callbackURL: 'https://activity.fanoia.live/auth/discord/callback',
+    scope: scopes, 
+	prompt: "none"
+},
+async function(accessToken, refreshToken, data, profile, cb) {
+	
+	var options = {
+		url: 'https://discord.com/api/users/@me/guilds/' + config.information.GUILD_ID + '/member',
+		headers: {
+			Authorization: 'Bearer ' + accessToken
+		}
+	}
+	let talent = false;
+	let staff = false;
+	let rateLimit = false;
+	
+	await request.get(options, function(error, response, body) {
+		if (error) {
+			console.log(error)
+		} else {
+			if (JSON.parse(body).message == "You are being rate limited.") {
+				rateLimit = true
+				return
+			}
+			if (JSON.parse(body).roles.includes(config.role_ids.FANOIA_TALENT_ROLE_ID)) {
+				talent = true
+			}
+			if (JSON.parse(body).roles.includes(config.role_ids.FANOIA_STAFF_ROLE_ID)) {
+				staff = true
+			}
+		}
+	})
+
+    const found = await DBEdit3.findOrCreate({ where: { discordId: profile.id }, 
+        defaults: {
+            discordId: profile.id,
+            username: profile.username,
+            nickname: profile.global_name,
+            avatar: profile.avatar,
+            token: accessToken,
+            expires: new Date().setMilliseconds(new Date().getMilliseconds() + data.expires_in),
+            approved: false,
+            staff: staff,
+            talent: talent
+        }})
+    if (found) {
+        DBEdit3.update({ token: accessToken, expires: new Date().setMilliseconds(new Date().getMilliseconds() + data.expires_in), staff: staff, talent: talent}, { where: { discordId: profile.id } })
+    }
+
+    return cb(null, profile);
+}));
+
+passport.serializeUser((user, done) => {
+    done(null, user); // Serialize the user ID into the session
+  });
+
+
+  passport.deserializeUser(function(user, done) {
+    done(null, user);
+});
+
+
+act.use(express.static(path.join(__dirname, "public")))
+.use(cors())
+.use(cookieParser())
+.use(session({secret: SESSION_SECRET, resave: false, saveUninitialized: false}))
+.use(passport.initialize())
+.use(passport.session())
+.use(bodyParser.json())
+.use(bodyParser.urlencoded({ extended: true }))
+.use((req, res, next) => {
+	const timezone = moment.tz.guess();
+	req.timezone = timezone;
+	next();
+})
+.use((req, res, next) => {
+	if (req.session && req.session.passport) {
+		var found = DBEdit3.findOne({ where: { discordId: req.session.passport.user.id } }) 
+		if (found) {
+			req.staff = found.staff
+			req.talent = found.talent
+		}
+	}
+	next();
+});
+
+act.set("view engine", "ejs");
+
+act.get ('/', async (req, res) => {
+	if(req.session && req.session.passport) {
+        var html = await ejs.renderFile("views/indexl.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true});
+        res.send(html);
+      } else {
+        res.render("index");
+      }
+})
+
+act.listen(port + 1, async () => {
+	console.log(`Example app listening at http://localhost:${port + 1}`);
+})
+
+act.get('/login', passport.authenticate('discord', { prompt: "none" }));
+act.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/#login_error', successRedirect: '/' }));
+
+act.get('/logout', (req, res) => {
+    var token = req.session.passport.user.accessToken
+    req.logOut(function(err) {
+        if (err) {
+            console.log(err);
+        } else {
+
+
+            var options = {
+                url: "https://discord.com/api/oauth2/token/revoke?token=" + token,
+                headers:{
+                    'Authorization': 'Basic ' + (new Buffer(config.information.CLIENT_ID+ ':' + config.information.CLIENT_SECRET).toString('base64'))
+                }
+            }
+
+            console.log((new Buffer(config.information.CLIENT_ID+ ':' + config.information.CLIENT_SECRET).toString('base64')))
+            request.post(options, function(error, response, body) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    console.log(body)
+                }
+            })
+            req.session.destroy(function(err) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    res.redirect('/');
+                }
+              });
+        }
+      });
+});
+
+
+act.get('/collabs', async (req, res) => {
+	if(req.session && req.session.passport) {
+		var html = await ejs.renderFile("views/collabs.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2});
+		res.send(html);
+	} else {
+		res.status(403).redirect("/");
+	}
+})
+
+act.get('/collabs/:id', async (req, res) => {
+	if(req.session && req.session.passport) {
+		var html = await ejs.renderFile("views/collab.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, id: req.params.id, timezone: req.timezone, moment: moment, DBEdit3: DBEdit3});
+		res.send(html);
+	} else {
+		res.status(403).redirect("/");
+	}
+})
+
+act.get('/join/:id', async (req, res) => {
+	if(req.session && req.session.passport) {
+		var found = await DBEdit2.findOne({ where: { messageID: req.params.id } })	
+		if (found) {
+			if (JSON.parse(found.attendies).indexOf(req.session.passport.user.id) !== -1) {
+				res.redirect('/collabs/' + req.params.id)
+				return
+			}
+			await DBEdit2.update({ attendies: JSON.stringify([...JSON.parse(found.attendies), req.session.passport.user.id]) }, { where: { messageID: req.params.id } })
+			res.redirect('/collabs/' + req.params.id)
+		} else {
+			res.status(404).json({ error: "Collab not found, Please try again later!" });
+		}
+	}
+})
+
+act.get('/leave/:id', async (req, res) => {
+	if(req.session && req.session.passport) {
+		var found = await DBEdit2.findOne({ where: { messageID: req.params.id } })	
+		if (found) {
+			if (JSON.parse(found.attendies).includes(req.session.passport.user.id)) {
+				if (found.makerUserID == req.session.passport.user.id) {
+					res.status(403).json({ error: "You cannot leave your own collab! Please delete it via the discord channel." });
+					return
+				}
+			await DBEdit2.update({ attendies: JSON.stringify([...JSON.parse(found.attendies), req.session.passport.user.id]) }, { where: { messageID: req.params.id } })
+			res.redirect('/collabs/' + req.params.id)
+			} else {
+				res.status(403).json({ error: "You are not in this collab! Join it first!" });
+			}
+		} else {
+			res.status(404).json({ error: "Collab not found, Please try again later!" });
+		}
+	}
+})
+

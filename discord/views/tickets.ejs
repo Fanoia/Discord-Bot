@@ -1,0 +1,162 @@
+
+<% 
+
+var options = {
+    url: 'https://discord.com/api/users/@me/guilds/' + config.information.GUILD_ID + '/member',
+    headers: {
+        Authorization: 'Bearer ' + user.accessToken
+    }
+}
+
+
+let talent = false;
+let staff = false;
+let rateLimit = false;
+
+await request.get(options, async function(error, response, body) {
+    if (error) {
+        console.log(error)
+    } else {
+        if (JSON.parse(body).message == "You are being rate limited.") {
+            rateLimit = true
+            
+        }
+        if (JSON.parse(body).roles.includes(config.role_ids.FANOIA_TALENT_ROLE_ID)) {
+            talent = true
+        }
+        if (JSON.parse(body).roles.includes(config.role_ids.FANOIA_STAFF_ROLE_ID)) {
+            staff = true
+        }
+    }
+})
+
+
+        
+await wait(1000)
+        
+
+
+
+%>
+
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>FanoiaEN Portal - Tickets</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="/img/logo.png" alt="Logo" width="96" height="90" class="d-inline-block align-text-top">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+              
+                </ul>
+                <div class="d-flex">
+                    <button onclick="window.location.href='/logout'" class="btn btn-primary">Log Out</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="side-nav">
+        <div class="side-nav-info">
+            <img class="side-nav-logo" src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" alt="Logo" width="60" height="60" style="border-radius: 50%;">
+            <div class="side-nav-text">
+                <span class="side-nav-nickname"><%= user.global_name %></span>
+                <span class="side-nav-role"><%
+                if (staff) {
+                    %> Staff <%
+} else if (talent) {
+                    %> Talent <%
+}
+                %>
+                </span>
+            </div>
+        </div>
+        <div class="side-nav-item">
+            <a class="side-nav-item-text" href="/">
+            <i class="bi bi-house-fill"></i> Home</a>
+        </div>
+        <div class="side-nav-item">
+            <a class="side-nav-item-text" href="/tickets">
+            <i class="bi bi-ticket-perforated-fill"></i> Tickets</a>
+        </div>
+        <div class="side-nav-item">
+            <a class="side-nav-item-text" href="/collabs">
+            <i class="bi bi-people-fill"></i> Collabs</a>
+        </div>
+    </div>
+
+    <div class="tickets-view-container">
+
+        <% 
+        
+        
+
+
+        let tickets;
+var options = {
+    url: 'https://portalapi.fanoia.live/api/tickets/getTickets',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + user.accessToken,
+        'User-Agent': 'FanoiaPanel/1.0.0',
+        'Origin': 'https://activity.fanoia.live'
+    }
+}
+await request.get(options, function(error, response, body) {
+    if (error) {
+        console.log(error)
+    } else {
+        tickets = JSON.parse(body).data.tickets
+        console.log(tickets)
+    }
+})
+        
+
+await wait(1000)
+            
+            
+            
+            
+        %>
+        
+        <h1 class="tickets-view-title">Your Tickets</h1>
+
+        <div class="tickets-list-container">
+            <div class="list-group list-group-flush">
+                <% 
+                if (tickets.length == 0) {
+                    %> <span>No Tickets</span><%
+                } else {
+                
+                
+                for (var i = 0; i < tickets.length; i++) { %>
+                    <a href="/tickets/<%= tickets[i].id %>" class="list-group-item list-group-item-action"><%= JSON.parse(fs.readFileSync(tickets[i].messageFile, 'utf8')).information.name %></a>
+                <% }} %>
+            </div>
+        </div>
+        
+    </div>
+    
+
+
+
+    <script src="/js/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>
