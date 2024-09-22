@@ -35,6 +35,18 @@ module.exports = {
                     
                     await client.channels.cache.get(config.channel_ids.STAFF_CHANNEL_ID).send({ content: "<@" + newMember.id + ">", embeds: [embed] })
             }
+            if (newMember.roles.cache.has(config.role_ids.FANOIA_ALLIANCE_ROLE_ID) && !oldMember.roles.cache.has(config.role_ids.FANOIA_ALLIANCE_ROLE_ID)) {
+
+                const embed = new EmbedBuilder()
+                    .setColor(0x32CD32)
+                    .setTitle('**Welcome to FanoiaEN Alliance!** 🎉')
+                    .addFields(
+                        { name: 'Information!', value: `Welcome to FanoiaEN Alliance! You have been given the <@&${config.role_ids.FANOIA_ALLIANCE_ROLE_ID}> role!
+                        This role gives you access to the Alliance related channels!`, inline: true },
+                    )
+                    
+                    await client.channels.cache.get(config.channel_ids.ALLIANCE_CHANNEL_ID).send({ content: "<@" + newMember.id + ">", embeds: [embed] })
+                }
         }
     }
 }
