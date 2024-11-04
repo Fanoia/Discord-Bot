@@ -13,7 +13,7 @@ const path = require('node:path');
 require('dotenv').config();
 const log = require('./logger.js');
 const TOKEN = process.env.TOKEN;
-const client = new Client({ intents: [GatewayIntentBits.Guilds , GatewayIntentBits.GuildMembers] });
+const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessages ] });
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
@@ -285,7 +285,6 @@ async function sendSubs() {
 		}
 
 		request.post(options, async function(error, response, body) {
-			console.log(body)
 			if (!error && response.statusCode === 204) {
 			}
 		})
@@ -296,7 +295,7 @@ async function sendSubs() {
 
 
 async function handleNotification(event) {
-	console.log(event)
+	await wait(3000)
 	if (config.twitch_api.broadcasters.indexOf(event.broadcaster_user_id !== -1)) {
 		var options = {
 			url: "https://api.twitch.tv/helix/streams?user_id=" + event.broadcaster_user_id,
@@ -538,7 +537,7 @@ act.get ('/', async (req, res) => {
       }
 })
 
-act.listen(port + 1, async () => {
+act.listen(port + 2, async () => {
 	console.log(`Example app listening at http://localhost:${port + 1}`);
 })
 
@@ -788,3 +787,22 @@ async function AttendeesEmbed(attendiesarray){
     })
 
 }
+
+
+const DBEdit5 = fanoiadb.define('message_anylatics', {
+
+	talentMessageNumber: Sequelize.INTEGER,
+	otherRoles: Sequelize.INTEGER
+
+});
+DBEdit5.sync()
+
+const DBEdit6 = fanoiadb.define('tickets', {
+
+	ticketID: Sequelize.INTEGER,
+	channelID: Sequelize.STRING,
+	participants: Sequelize.STRING,
+	claimedBy: Sequelize.STRING,
+
+});
+DBEdit6.sync()

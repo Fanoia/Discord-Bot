@@ -64,6 +64,26 @@ module.exports = {
 					}
 					}
 				} else {
+					if (event.name === interaction.customId) {
+						await event.ButtonHandle(interaction, interaction.client);
+					}
+				}
+			}
+		} else if (interaction.isStringSelectMenu()) {
+			// respond to the select menu
+
+			const selectsPath = path.join(__dirname, 'dropdowns');
+
+			const eventFiles = fs.readdirSync(selectsPath).filter(file => file.endsWith('.js'));
+			for (const file of eventFiles) {
+				const filePath = path.join(selectsPath, file);
+				const event = require(filePath);
+				if (interaction.message.channelId === config.channel_ids.TICKET_CREATIONCHANNEL_ID){
+					if (interaction.customId === event.name) {
+						await event.execute(interaction, interaction.client);
+					}
+					
+				} else {
 					return;
 				}
 			}
