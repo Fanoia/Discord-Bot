@@ -446,33 +446,7 @@ passport.use(new DiscordStrategy({
 },
 async function(accessToken, refreshToken, data, profile, cb) {
 	
-	var options = {
-		url: 'https://discord.com/api/users/@me/guilds/' + config.information.GUILD_ID + '/member',
-		headers: {
-			Authorization: 'Bearer ' + accessToken
-		}
-	}
-	let talent = false;
-	let staff = false;
-	let rateLimit = false;
 	
-	await request.get(options, function(error, response, body) {
-		if (error) {
-			console.log(error)
-		} else {
-			if (JSON.parse(body).message == "You are being rate limited.") {
-				rateLimit = true
-				return
-			}
-			if (JSON.parse(body).roles.includes(config.role_ids.FANOIA_TALENT_ROLE_ID)) {
-				talent = true
-			}
-			if (JSON.parse(body).roles.includes(config.role_ids.FANOIA_STAFF_ROLE_ID)) {
-				staff = true
-			}
-		}
-	})
-
     const found = await DBEdit3.findOrCreate({ where: { discordId: profile.id }, 
         defaults: {
             discordId: profile.id,
@@ -481,12 +455,10 @@ async function(accessToken, refreshToken, data, profile, cb) {
             avatar: profile.avatar,
             token: accessToken,
             expires: new Date().setMilliseconds(new Date().getMilliseconds() + data.expires_in),
-            approved: false,
-            staff: staff,
-            talent: talent
+            approved: false
         }})
     if (found) {
-        DBEdit3.update({ token: accessToken, expires: new Date().setMilliseconds(new Date().getMilliseconds() + data.expires_in), staff: staff, talent: talent}, { where: { discordId: profile.id } })
+        DBEdit3.update({ username: profile.username, nickname: profile.global_name, avatar: profile.avatar, token: accessToken, expires: new Date().setMilliseconds(new Date().getMilliseconds() + data.expires_in)}, { where: { discordId: profile.id } })
     }
 
     return cb(null, profile);
@@ -530,7 +502,8 @@ act.set("view engine", "ejs");
 
 act.get ('/', async (req, res) => {
 	if(req.session && req.session.passport) {
-        var html = await ejs.renderFile("views/indexl.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, moment: moment, timezone: req.timezone});
+		console.log(req.session.passport.user)
+        var html = await ejs.renderFile("views/indexl.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, moment: moment, timezone: req.timezone, role: req.staff ?? req.talent ?? null });
         res.send(html);
       } else {
         res.render("index");
@@ -538,7 +511,7 @@ act.get ('/', async (req, res) => {
 })
 
 act.listen(port + 2, async () => {
-	console.log(`Example app listening at http://localhost:${port + 1}`);
+	console.log(`Example app listening at http://localhost:${port + 2}`);
 })
 
 act.get('/login', passport.authenticate('discord', { prompt: "none" }));
@@ -581,14 +554,14 @@ act.get('/logout', (req, res) => {
 
 act.get('/collabs', async (req, res) => {
 	if(req.session && req.session.passport) {
-		var html = await ejs.renderFile("views/collabs.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2});
+		var html = await ejs.renderFile("views/collabs.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, timezone: req.timezone, moment: moment});
 		res.send(html);
 	} else {
 		res.status(403).redirect("/");
 	}
 })
 
-act.get('/collabs/:id', async (req, res) => {
+act.get('/collab/:id', async (req, res) => {
 	if(req.session && req.session.passport) {
 		var html = await ejs.renderFile("views/collab.ejs", {user: req.session.passport.user, request: request, config: config, wait: wait, async: true, DBEdit2: DBEdit2, id: req.params.id, timezone: req.timezone, moment: moment, DBEdit3: DBEdit3});
 		res.send(html);
@@ -603,7 +576,7 @@ act.get('/join/:id', async (req, res) => {
 		if (found) {
 			var attendiesarray = JSON.parse(found.attendies)
 			if (JSON.parse(found.attendies).indexOf(req.session.passport.user.id) !== -1) {
-				res.redirect('/collabs/' + req.params.id)
+				res.redirect('/collab/' + req.params.id)
 				return
 			}
 			attendiesarray.push(req.session.passport.user.id)
@@ -642,7 +615,7 @@ act.get('/join/:id', async (req, res) => {
 						await channel.messages.fetch(found.messageID).then(async message => await message.edit({ embeds: [embed], components: [row] }))
 					})
 				})
-			res.redirect('/collabs/' + req.params.id)
+			res.redirect('/collab/' + req.params.id)
 		} else {
 			res.status(404).json({ error: "Collab not found, Please try again later!" });
 		}
@@ -694,7 +667,7 @@ act.get('/leave/:id', async (req, res) => {
 						await channel.messages.fetch(found.messageID).then(async message => await message.edit({ embeds: [embed], components: [row] }))
 					})
 				})
-			res.redirect('/collabs/' + req.params.id)
+			res.redirect('/collab/' + req.params.id)
 			} else {
 				res.status(403).json({ error: "You are not in this collab! Join it first!" });
 			}
